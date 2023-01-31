@@ -130,6 +130,7 @@ func (s *Service) SetManagerClient(managerClient manager.ManagerClient, callOpti
 }
 
 const (
+	logName          = "log-name"
 	addressFlag      = "address"
 	embedNetworkFlag = "embed-network"
 )
@@ -147,6 +148,7 @@ func Command() *cobra.Command {
 	flags := c.Flags()
 	flags.String(addressFlag, "", "Address to listen to. Defaults to "+client.ConnectorSocketName)
 	flags.Bool(embedNetworkFlag, false, "Embed network functionality in the user daemon. Requires capability NET_ADMIN")
+	flags.String(logName, userd.ProcessName+".log", "Name of log file or \"-\" for stdout. This is not a path")
 	return c
 }
 
@@ -292,7 +294,13 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 	c = client.WithConfig(c, cfg)
 	c = dgroup.WithGoroutineName(c, "/"+userd.ProcessName)
-	c, err = logging.InitContext(c, userd.ProcessName, logging.RotateDaily, true)
+
+	flags := cmd.Flags()
+	logName, err := flags.GetString(logName)
+	if err != nil {
+		return err
+	}
+	c, err = logging.InitContext(c, logName, logging.RotateDaily, true)
 	if err != nil {
 		return err
 	}
@@ -301,7 +309,6 @@ func run(cmd *cobra.Command, _ []string) error {
 	// before other tasks because the CLI client will only wait for a short period of time for
 	// the connection/socket/pipe to appear before it gives up.
 	var grpcListener net.Listener
-	flags := cmd.Flags()
 	rootSessionInProc, _ := flags.GetBool(embedNetworkFlag)
 	if addr, _ := flags.GetString(addressFlag); addr != "" {
 		lc := net.ListenConfig{}

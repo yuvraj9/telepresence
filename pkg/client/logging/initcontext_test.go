@@ -31,7 +31,7 @@ func (dtimeHook) Fire(entry *logrus.Entry) error {
 }
 
 func TestInitContext(t *testing.T) {
-	const logName = "testing"
+	const logName = "testing.log"
 
 	ft := dtime.NewFakeTime()
 

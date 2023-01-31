@@ -30,7 +30,7 @@ func InitContext(ctx context.Context, name string, strategy RotationStrategy, ca
 	logger.SetLevel(logrus.InfoLevel)
 	logger.ReportCaller = false // turned on when level >= logrus.TraceLevel
 
-	if captureStd && IsTerminal(int(os.Stdout.Fd())) {
+	if name == "-" || captureStd && IsTerminal(int(os.Stdout.Fd())) {
 		logger.Formatter = tlog.NewFormatter("15:04:05.0000")
 	} else {
 		logger.Formatter = tlog.NewFormatter("2006-01-02 15:04:05.0000")
@@ -46,7 +46,7 @@ func InitContext(ctx context.Context, name string, strategy RotationStrategy, ca
 				maxFiles = uint16(mx)
 			}
 		}
-		rf, err := OpenRotatingFile(filepath.Join(dir, name+".log"), "20060102T150405", true, 0o600, strategy, maxFiles)
+		rf, err := OpenRotatingFile(filepath.Join(dir, name), "20060102T150405", true, 0o600, strategy, maxFiles)
 		if err != nil {
 			return ctx, err
 		}
@@ -71,10 +71,10 @@ func InitContext(ctx context.Context, name string, strategy RotationStrategy, ca
 
 	// Read the config and set the configured level.
 	logLevels := client.GetConfig(ctx).LogLevels
-	level := logrus.InfoLevel
-	if name == "daemon" {
+	var level logrus.Level
+	if name == "daemon.log" {
 		level = logLevels.RootDaemon
-	} else if name == "connector" || name == "cli" { // Have the CLI log at the same level as the user daemon
+	} else { // Have the CLI log at the same level as the user daemon
 		level = logLevels.UserDaemon
 	}
 	tlog.SetLogrusLevel(logger, level.String())
